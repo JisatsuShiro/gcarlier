@@ -1,0 +1,222 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Logs SSH - VPS Manager{% endblock %}
+
+{% block body %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">
+        <i class="fas fa-shield-alt mr-2"></i> Logs SSH
+    </h1>
+    <p class="mt-2 text-gray-600">Surveillance des tentatives de connexion SSH</p>
+</div>
+
+{# Statistiques #}
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 card-hover">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-blue-500 p-3">
+                        <i class="fas fa-list text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Total Tentatives</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ stats.total }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 card-hover">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-green-500 p-3">
+                        <i class="fas fa-check-circle text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Réussies</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ stats.successful }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 card-hover">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-red-500 p-3">
+                        <i class="fas fa-times-circle text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Échouées</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ stats.failed }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 card-hover">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-yellow-500 p-3">
+                        <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Taux d'échec</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ stats.failureRate }}%</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {# Liste des tentatives #}
+    <div class="lg:col-span-2">
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+            <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-history mr-2"></i> Tentatives de connexion
+                </h2>
+                <div class="flex space-x-2">
+                    <a href="{{ path('app_ssh_logs', {filter: 'all'}) }}" 
+                       class="px-3 py-1 text-sm rounded {% if filter == 'all' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Toutes
+                    </a>
+                    <a href="{{ path('app_ssh_logs', {filter: 'failed'}) }}" 
+                       class="px-3 py-1 text-sm rounded {% if filter == 'failed' %}bg-red-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Échouées
+                    </a>
+                    <a href="{{ path('app_ssh_logs', {filter: 'success'}) }}" 
+                       class="px-3 py-1 text-sm rounded {% if filter == 'success' %}bg-green-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Réussies
+                    </a>
+                </div>
+            </div>
+
+            {% if attempts|length > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Date/Heure
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    IP
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Utilisateur
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Statut
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for attempt in attempts %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <i class="fas fa-clock mr-1 text-gray-400"></i>
+                                        {{ attempt.attemptedAt|date('d/m/Y H:i:s') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-mono text-gray-900">{{ attempt.ipAddress }}</div>
+                                        {% if attempt.country %}
+                                            <div class="text-xs text-gray-500">{{ attempt.country }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <i class="fas fa-user mr-1 text-gray-400"></i>
+                                        {{ attempt.username|default('N/A') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if attempt.success %}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i> Réussie
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                <i class="fas fa-times-circle mr-1"></i> Échouée
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-inbox text-gray-300 text-6xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Aucune tentative trouvée</h3>
+                    <p class="text-gray-500 mb-6">Les logs SSH apparaîtront ici une fois analysés</p>
+                    <p class="text-sm text-gray-400">
+                        Exécutez: <code class="bg-gray-100 px-2 py-1 rounded">php bin/console app:parse-ssh-logs</code>
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Top attaquants #}
+    <div class="lg:col-span-1">
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+            <div class="px-6 py-5 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-user-secret mr-2"></i> Top Attaquants
+                </h2>
+            </div>
+            <div class="px-6 py-4">
+                {% if topAttackers|length > 0 %}
+                    <div class="space-y-3">
+                        {% for attacker in topAttackers %}
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex-1">
+                                    <div class="text-sm font-mono font-medium text-gray-900">
+                                        {{ attacker.ipAddress }}
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        {{ attacker.attemptCount }} tentatives
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-sm text-center py-4">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+            <h3 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-info-circle mr-1"></i> Information
+            </h3>
+            <p class="text-sm text-blue-700">
+                Les logs SSH sont analysés automatiquement. Pour forcer une analyse, exécutez la commande :
+            </p>
+            <code class="block mt-2 bg-blue-100 text-blue-900 px-3 py-2 rounded text-xs">
+                php bin/console app:parse-ssh-logs
+            </code>
+        </div>
+    </div>
+</div>
+{% endblock %}

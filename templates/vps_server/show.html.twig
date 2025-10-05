@@ -1,0 +1,235 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ vps_server.name }} - VPS Manager{% endblock %}
+
+{% block body %}
+<div class="mb-6">
+    <a href="{{ path('app_dashboard') }}" class="text-indigo-600 hover:text-indigo-800 inline-flex items-center">
+        <i class="fas fa-arrow-left mr-2"></i> Retour au dashboard
+    </a>
+</div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 mb-6">
+    <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-900 flex items-center">
+                <div class="h-12 w-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-3">
+                    <i class="fas fa-server text-white text-xl"></i>
+                </div>
+                {{ vps_server.name }}
+                <span class="ml-3 px-3 py-1 text-sm leading-5 font-semibold rounded-full 
+                    {% if vps_server.status == 'active' %}bg-green-100 text-green-800
+                    {% elseif vps_server.status == 'inactive' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {% if vps_server.status == 'active' %}
+                        <i class="fas fa-circle mr-1"></i> Actif
+                    {% elseif vps_server.status == 'inactive' %}
+                        <i class="fas fa-circle mr-1"></i> Inactif
+                    {% else %}
+                        <i class="fas fa-circle mr-1"></i> Maintenance
+                    {% endif %}
+                </span>
+            </h2>
+            <p class="mt-1 text-sm text-gray-600">Détails et métriques du serveur</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{{ path('app_vps_server_edit', {'id': vps_server.id}) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-edit mr-2"></i> Modifier
+            </a>
+            <button onclick="confirmDelete()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+                <i class="fas fa-trash mr-2"></i> Supprimer
+            </button>
+        </div>
+    </div>
+
+    <div class="px-6 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Informations générales</h3>
+                <dl class="space-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Adresse IP</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-mono">
+                            <i class="fas fa-network-wired mr-2 text-indigo-500"></i>{{ vps_server.ipAddress }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Port SSH</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <i class="fas fa-terminal mr-2 text-green-500"></i>{{ vps_server.sshPort }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Utilisateur SSH</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <i class="fas fa-user mr-2 text-blue-500"></i>{{ vps_server.sshUser|default('Non spécifié') }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Localisation</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>{{ vps_server.location|default('Non spécifié') }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Fournisseur</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <i class="fas fa-cloud mr-2 text-purple-500"></i>{{ vps_server.provider|default('Non spécifié') }}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Métriques actuelles</h3>
+                {% set latestMetric = vps_server.latestMetric %}
+                {% if latestMetric %}
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">
+                                    <i class="fas fa-microchip mr-1 text-yellow-500"></i> CPU
+                                </span>
+                                <span class="text-sm font-medium text-gray-900">{{ latestMetric.cpuUsage }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-yellow-500 h-2.5 rounded-full" style="width: {{ latestMetric.cpuUsage }}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">
+                                    <i class="fas fa-memory mr-1 text-purple-500"></i> Mémoire
+                                </span>
+                                <span class="text-sm font-medium text-gray-900">{{ latestMetric.memoryUsage }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-purple-500 h-2.5 rounded-full" style="width: {{ latestMetric.memoryUsage }}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">
+                                    <i class="fas fa-hdd mr-1 text-blue-500"></i> Disque
+                                </span>
+                                <span class="text-sm font-medium text-gray-900">{{ latestMetric.diskUsage }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-blue-500 h-2.5 rounded-full" style="width: {{ latestMetric.diskUsage }}%"></div>
+                            </div>
+                        </div>
+                        <div class="pt-2 text-xs text-gray-500">
+                            <i class="fas fa-clock mr-1"></i> Dernière mise à jour: {{ latestMetric.recordedAt|date('d/m/Y H:i') }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-chart-line text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-gray-500">Aucune métrique disponible</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if vps_server.notes %}
+            <div class="mt-6 pt-6 border-t">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Notes</h3>
+                <p class="text-sm text-gray-600 whitespace-pre-wrap">{{ vps_server.notes }}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if metrics|length > 0 %}
+<div class="bg-white shadow-sm rounded-lg border border-gray-200">
+    <div class="px-6 py-5 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-900">
+            <i class="fas fa-chart-area mr-2"></i> Historique des métriques (24h)
+        </h3>
+    </div>
+    <div class="px-6 py-6">
+        <canvas id="metricsChart" height="80"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<form id="deleteForm" method="post" action="{{ path('app_vps_server_delete', {'id': vps_server.id}) }}" style="display: none;">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ vps_server.id) }}">
+</form>
+{% endblock %}
+
+{% block javascripts %}
+{% if metrics|length > 0 %}
+<script>
+const ctx = document.getElementById('metricsChart').getContext('2d');
+const metrics = {{ metrics|reverse|json_encode|raw }};
+
+const labels = metrics.map(m => {
+    const date = new Date(m.recordedAt.date);
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+});
+
+const cpuData = metrics.map(m => parseFloat(m.cpuUsage));
+const memoryData = metrics.map(m => parseFloat(m.memoryUsage));
+const diskData = metrics.map(m => parseFloat(m.diskUsage));
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'CPU (%)',
+                data: cpuData,
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                tension: 0.4
+            },
+            {
+                label: 'Mémoire (%)',
+                data: memoryData,
+                borderColor: 'rgb(168, 85, 247)',
+                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                tension: 0.4
+            },
+            {
+                label: 'Disque (%)',
+                data: diskData,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+
+<script>
+function confirmDelete() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce serveur VPS ? Cette action est irréversible.')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+{% endblock %}
