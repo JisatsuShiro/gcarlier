@@ -187,49 +187,44 @@ class ParseSshLogsCommand extends Command
      */
     private function parseSshLogLine(string $line, $server): ?SshAttempt
     {
-        // Pattern pour les connexions réussies
-        // Ex: Oct  5 20:15:23 server sshd[12345]: Accepted password for user from 192.168.1.1 port 54321 ssh2
-        if (preg_match('/(\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Accepted (\w+) for (\w+) from ([\d\.]+) port (\d+)/', $line, $matches)) {
+
+        // Connexions réussies
+        if (preg_match('/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).*sshd\[\d+\]: Accepted (\S+) for (\S+) from ([\d\.]+) port (\d+)/', $line, $matches)) {
             $attempt = new SshAttempt();
             $attempt->setServer($server);
-            $attempt->setAttemptedAt($this->parseDate($matches[1]));
+            $attempt->setAttemptedAt(new \DateTimeImmutable($matches[1]));
             $attempt->setMethod($matches[2]);
             $attempt->setUsername($matches[3]);
             $attempt->setIpAddress($matches[4]);
             $attempt->setPort($matches[5]);
             $attempt->setSuccess(true);
             $attempt->setRawLog($line);
-            
             return $attempt;
         }
 
-        // Pattern pour les échecs de connexion
-        // Ex: Oct  5 20:15:23 server sshd[12345]: Failed password for invalid user admin from 192.168.1.1 port 54321 ssh2
-        if (preg_match('/(\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Failed password for (?:invalid user )?(\w+) from ([\d\.]+) port (\d+)/', $line, $matches)) {
+        // Échecs de connexion
+        if (preg_match('/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).*sshd\[\d+\]: Failed password for (?:invalid user )?(\S+) from ([\d\.]+) port (\d+)/', $line, $matches)) {
             $attempt = new SshAttempt();
             $attempt->setServer($server);
-            $attempt->setAttemptedAt($this->parseDate($matches[1]));
+            $attempt->setAttemptedAt(new \DateTimeImmutable($matches[1]));
             $attempt->setUsername($matches[2]);
             $attempt->setIpAddress($matches[3]);
             $attempt->setPort($matches[4]);
             $attempt->setSuccess(false);
             $attempt->setMethod('password');
             $attempt->setRawLog($line);
-            
             return $attempt;
         }
 
-        // Pattern pour les tentatives invalides
-        // Ex: Oct  5 20:15:23 server sshd[12345]: Invalid user admin from 192.168.1.1
-        if (preg_match('/(\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Invalid user (\w+) from ([\d\.]+)/', $line, $matches)) {
+        // Tentatives invalides
+        if (preg_match('/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).*sshd\[\d+\]: Invalid user (\S+) from ([\d\.]+)/', $line, $matches)) {
             $attempt = new SshAttempt();
             $attempt->setServer($server);
-            $attempt->setAttemptedAt($this->parseDate($matches[1]));
+            $attempt->setAttemptedAt(new \DateTimeImmutable($matches[1]));
             $attempt->setUsername($matches[2]);
             $attempt->setIpAddress($matches[3]);
             $attempt->setSuccess(false);
             $attempt->setRawLog($line);
-            
             return $attempt;
         }
 
